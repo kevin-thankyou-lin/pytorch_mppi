@@ -74,7 +74,8 @@ class MPPI():
                  rollout_samples=1,
                  rollout_var_cost=0,
                  rollout_var_discount=0.95,
-                 sample_null_action=False):
+                 sample_null_action=False,
+                 dyn_model=None):
         """
         :param dynamics: function(state, action) -> next_state (K x nx) taking in batch state (K x nx) and action (K x nu)
         :param running_cost: function(state, action) -> cost (K) taking in batch state and action (same as dynamics)
@@ -149,6 +150,7 @@ class MPPI():
 
         self.step_dependency = step_dependent_dynamics
         self.F = dynamics
+        self.dyn_model = dyn_model
         self.running_cost = running_cost
         self.terminal_state_cost = terminal_state_cost
         self.sample_null_action = sample_null_action
@@ -168,7 +170,7 @@ class MPPI():
 
     @handle_batch_input
     def _dynamics(self, state, u, t):
-        return self.F(state, u, t) if self.step_dependency else self.F(state, u)
+        return self.F(state, u, t, self.dyn_model) if self.step_dependency else self.F(state, u, self.dyn_model)
 
     @handle_batch_input
     def _running_cost(self, state, u):
@@ -306,6 +308,25 @@ class MPPI():
                                               self.u_scale * self.U[t].view(num_rollouts, -1), t)
         return states[:, 1:]
 
+
+def run_mppi_single(mppi, env, ep_length=300, render=True, dataset=None):
+    """
+    Run MPPI on a single environment for a single episode (M).
+    """
+    total_reward = 0
+    state = env.reset()
+    for j in range(ep_length):
+        obs_t = env.state.copy()
+        action = mppi.command(obs_t)
+        action = action.detach().cpu().numpy()[0]
+        _, reward, done, info = env.step([action])
+    
+        obs_tp1 = env.state.copy()
+        dataset.add(obs_t, action, reward, obs_tp1, done)
+
+        if render:
+            env.render()
+    return
 
 def run_mppi(mppi, env, retrain_dynamics, retrain_after_iter=50, iter=1000, render=True):
     dataset = torch.zeros((retrain_after_iter, mppi.nx + mppi.nu), dtype=mppi.U.dtype, device=mppi.d)

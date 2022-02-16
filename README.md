@@ -1,3 +1,10 @@
+### KL 
+
+1. Get a better way to doing dataloading
+    - Better way of doing validation data (tied with 1) i.e. don't rely on having analytical true dynamics
+2. Generalize code for another task e.g. cartpole
+3. Generalize code for key_dynam pusher slider!
+
 # PyTorch MPPI Implementation
 This repository implements Model Predictive Path Integral (MPPI) 
 with approximate dynamics in pytorch. MPPI typically requires actual
@@ -74,3 +81,7 @@ to initialize the dynamics:
 # Related projects
 - [pytorch CEM](https://github.com/LemonPi/pytorch_cem) - an alternative MPC shooting method with similar API as this
 project
+
+# Usage
+
+Run `python tests/pendulum_refactored.py`
